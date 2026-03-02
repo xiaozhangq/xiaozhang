@@ -9,7 +9,7 @@
 
 ## 技术栈
 
-- 后端：`Spring Boot 3.5` + `Spring Data JPA` + `H2`
+- 后端：`Spring Boot 3.5` + `Spring Data JPA` + `MySQL`
 - 前端：`Vue 3` + `Vite` + `Vue Router` + `Axios`
 
 ---
@@ -28,16 +28,35 @@
 
 ### 1) 启动后端
 
+先确保本地 MySQL 已启动，并创建数据库：
+
+```sql
+CREATE DATABASE IF NOT EXISTS ordering_system
+  DEFAULT CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+```
+
+默认连接参数（已在 `backend/src/main/resources/application.properties` 中配置）：
+
+- Host: `127.0.0.1`
+- Port: `3306`
+- User: `root`
+- Password: `jianjing@123`
+
+也支持通过环境变量覆盖：
+
+- `MYSQL_HOST`
+- `MYSQL_PORT`
+- `MYSQL_DB`
+- `MYSQL_USER`
+- `MYSQL_PASSWORD`
+
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
 
 后端默认地址：`http://localhost:8080`
-
-可选：H2 控制台（调试用）  
-`http://localhost:8080/h2-console`  
-JDBC URL: `jdbc:h2:mem:ordering`，用户名 `sa`，密码为空
 
 ### 2) 启动前端
 
