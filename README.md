@@ -79,7 +79,7 @@ npm run dev
   - 左侧分类切换
   - 中间菜品列表
   - 右侧购物车与下单表单
-- 后台管理：`/admin`
+- 后台管理：`/admin`（未登录会自动跳转 `/admin/login`）
   - 分类管理（增删改）
   - 菜品管理（增删改、上架状态）
   - 订单管理（查看与更新状态）
@@ -96,10 +96,29 @@ npm run dev
 
 ### 后台
 
+- `POST /api/admin/auth/login` 管理员登录，返回 JWT
+- `GET /api/admin/auth/me` 获取当前管理员信息
 - `GET/POST/PUT/DELETE /api/admin/categories`
 - `GET/POST/PUT/DELETE /api/admin/menu-items`
 - `GET /api/admin/orders`
 - `PUT /api/admin/orders/{id}/status`
+
+---
+
+## 后台登录鉴权（JWT）
+
+后端已启用 JWT 鉴权，`/api/admin/**` 需要管理员权限访问。  
+默认管理员账号：
+
+- 用户名：`admin`
+- 密码：`admin123456`
+
+可通过环境变量覆盖：
+
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD`
+- `JWT_SECRET`（长度至少 32）
+- `JWT_EXPIRE_MINUTES`
 
 ---
 

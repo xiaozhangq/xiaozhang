@@ -7,6 +7,9 @@ export const getPublicMenuItems = (categoryId) =>
   })
 export const createOrder = (payload) => http.post('/api/public/orders', payload)
 
+export const adminLogin = (payload) => http.post('/api/admin/auth/login', payload)
+export const getAdminProfile = () => http.get('/api/admin/auth/me')
+
 export const getAdminCategories = () => http.get('/api/admin/categories')
 export const createAdminCategory = (payload) =>
   http.post('/api/admin/categories', payload)

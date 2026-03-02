@@ -1,10 +1,12 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   createAdminCategory,
   createAdminMenuItem,
   deleteAdminCategory,
   deleteAdminMenuItem,
+  getAdminProfile,
   getAdminCategories,
   getAdminMenuItems,
   getAdminOrders,
@@ -12,11 +14,14 @@ import {
   updateAdminMenuItem,
   updateOrderStatus,
 } from '../api'
+import { clearAdminToken } from '../utils/auth'
 
 const loading = ref(false)
+const adminName = ref('')
 const categories = ref([])
 const menuItems = ref([])
 const orders = ref([])
+const router = useRouter()
 
 const categoryForm = reactive({
   id: null,
@@ -43,14 +48,33 @@ const statusOptions = [
 ]
 
 onMounted(async () => {
+  await loadProfile()
   await refreshAll()
 })
+
+async function loadProfile() {
+  try {
+    const { data } = await getAdminProfile()
+    adminName.value = data.username
+  } catch (error) {
+    if (error.status === 401 || error.status === 403) {
+      logout(false)
+      return
+    }
+    alert(error.message)
+  }
+}
 
 async function refreshAll() {
   loading.value = true
   try {
     await Promise.all([loadCategories(), loadMenuItems(), loadOrders()])
   } catch (error) {
+    if (error.status === 401 || error.status === 403) {
+      alert('登录已过期，请重新登录')
+      logout(false)
+      return
+    }
     alert(error.message)
   } finally {
     loading.value = false
@@ -199,10 +223,25 @@ function formatDate(value) {
   }
   return value.replace('T', ' ')
 }
+
+async function logout(showTip = true) {
+  clearAdminToken()
+  if (showTip) {
+    alert('已退出登录')
+  }
+  await router.replace('/admin/login')
+}
 </script>
 
 <template>
   <div class="admin-page">
+    <section class="panel admin-toolbar">
+      <div>
+        <strong>当前管理员：</strong>{{ adminName || '-' }}
+      </div>
+      <button class="btn-light" @click="logout()">退出登录</button>
+    </section>
+
     <p v-if="loading">数据加载中...</p>
 
     <section class="panel">
@@ -345,6 +384,12 @@ function formatDate(value) {
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   padding: 14px;
+}
+
+.admin-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .form-grid {
