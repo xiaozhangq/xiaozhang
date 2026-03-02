@@ -19,6 +19,13 @@ export const deleteAdminCategory = (id) =>
   http.delete(`/api/admin/categories/${id}`)
 
 export const getAdminMenuItems = () => http.get('/api/admin/menu-items')
+export const uploadImage = (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return http.post('/api/admin/upload/image', formData, {
+    timeout: 30000,
+  })
+}
 export const createAdminMenuItem = (payload) =>
   http.post('/api/admin/menu-items', payload)
 export const updateAdminMenuItem = (id, payload) =>

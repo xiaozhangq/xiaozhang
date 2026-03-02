@@ -1,5 +1,9 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
+
+onMounted(() => {
+  document.title = '后台登录'
+})
 import { useRoute, useRouter } from 'vue-router'
 import { adminLogin } from '../api'
 import { setAdminToken } from '../utils/auth'
@@ -88,5 +92,30 @@ async function submit() {
   border-radius: 8px;
   padding: 10px;
   font: inherit;
+}
+
+@media (max-width: 600px) {
+  .login-page {
+    padding: 16px;
+    min-height: 100vh;
+    align-items: flex-start;
+    padding-top: 20vh;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
+    padding: 20px 16px;
+  }
+
+  .login-card input {
+    padding: 12px 14px;
+    font-size: 16px;
+  }
+
+  .login-card button {
+    min-height: 48px;
+  }
 }
 </style>

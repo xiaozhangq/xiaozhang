@@ -3,6 +3,7 @@ package com.example.backend.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,6 +45,7 @@ public class AdminMenuItemController {
     }
 
     @PostMapping
+    @Transactional
     public MenuItemDto createMenuItem(@Valid @RequestBody AdminMenuItemRequest request) {
         MenuItem menuItem = new MenuItem();
         applyRequest(menuItem, request);
@@ -51,6 +53,7 @@ public class AdminMenuItemController {
     }
 
     @PutMapping("/{id}")
+    @Transactional
     public MenuItemDto updateMenuItem(@PathVariable Long id, @Valid @RequestBody AdminMenuItemRequest request) {
         MenuItem menuItem = menuItemRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "菜品不存在"));
@@ -71,9 +74,11 @@ public class AdminMenuItemController {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "分类不存在"));
         menuItem.setCategory(category);
         menuItem.setName(request.name().trim());
-        menuItem.setDescription(request.description());
+        menuItem.setDescription(request.description() != null && !request.description().isBlank()
+                ? request.description().trim() : null);
         menuItem.setPrice(request.price());
-        menuItem.setImageUrl(request.imageUrl());
+        menuItem.setImageUrl(request.imageUrl() != null && !request.imageUrl().isBlank()
+                ? request.imageUrl().trim() : null);
         menuItem.setAvailable(request.available());
     }
 }

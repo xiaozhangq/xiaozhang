@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   createAdminCategory,
@@ -13,6 +13,7 @@ import {
   updateAdminCategory,
   updateAdminMenuItem,
   updateOrderStatus,
+  uploadImage,
 } from '../api'
 import { clearAdminToken } from '../utils/auth'
 
@@ -22,6 +23,9 @@ const categories = ref([])
 const menuItems = ref([])
 const orders = ref([])
 const router = useRouter()
+const lastOrderIds = ref(new Set())
+let orderPollTimer = null
+const newOrderToast = ref(false)
 
 const categoryForm = reactive({
   id: null,
@@ -39,6 +43,8 @@ const menuForm = reactive({
   imageUrl: '',
   available: true,
 })
+const imageUploading = ref(false)
+const imageBaseUrl = import.meta.env.VITE_API_BASE_URL ?? ''
 
 const statusOptions = [
   { value: 'PENDING', label: '待接单' },
@@ -47,9 +53,76 @@ const statusOptions = [
   { value: 'CANCELLED', label: '已取消' },
 ]
 
+function playNewOrderSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.frequency.value = 880
+    osc.type = 'sine'
+    gain.gain.setValueAtTime(0.3, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15)
+    osc.start(ctx.currentTime)
+    osc.stop(ctx.currentTime + 0.15)
+    setTimeout(() => {
+      osc.frequency.value = 1100
+      const osc2 = ctx.createOscillator()
+      const g2 = ctx.createGain()
+      osc2.connect(g2)
+      g2.connect(ctx.destination)
+      osc2.frequency.value = 1100
+      osc2.type = 'sine'
+      g2.gain.setValueAtTime(0.25, ctx.currentTime)
+      g2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2)
+      osc2.start(ctx.currentTime)
+      osc2.stop(ctx.currentTime + 0.2)
+    }, 150)
+  } catch (_) {}
+}
+
+function showNewOrderNotification() {
+  newOrderToast.value = true
+  playNewOrderSound()
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification('新订单提醒', { body: '您有新的订单，请及时处理！' })
+  }
+  setTimeout(() => {
+    newOrderToast.value = false
+  }, 4000)
+}
+
+async function pollOrders() {
+  try {
+    const { data } = await getAdminOrders()
+    const currentIds = new Set(data.map((o) => o.id))
+    const hadOrders = lastOrderIds.value.size > 0
+    const hasNew = [...currentIds].some((id) => !lastOrderIds.value.has(id))
+    if (hadOrders && hasNew) {
+      const newOrders = data.filter((o) => !lastOrderIds.value.has(o.id))
+      if (newOrders.some((o) => o.status === 'PENDING')) {
+        showNewOrderNotification()
+      }
+    }
+    lastOrderIds.value = currentIds
+    orders.value = data
+  } catch (_) {}
+}
+
 onMounted(async () => {
+  document.title = '后台管理'
   await loadProfile()
   await refreshAll()
+  lastOrderIds.value = new Set(orders.value.map((o) => o.id))
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission()
+  }
+  orderPollTimer = setInterval(pollOrders, 5000)
+})
+
+onUnmounted(() => {
+  if (orderPollTimer) clearInterval(orderPollTimer)
 })
 
 async function loadProfile() {
@@ -200,6 +273,30 @@ async function removeMenuItem(id) {
   }
 }
 
+async function onImageSelect(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  if (!file.type.startsWith('image/')) {
+    alert('请选择图片文件')
+    return
+  }
+  imageUploading.value = true
+  try {
+    const { data } = await uploadImage(file)
+    menuForm.imageUrl = data.url
+  } catch (error) {
+    alert(error.message || '上传失败')
+  } finally {
+    imageUploading.value = false
+    e.target.value = ''
+  }
+}
+
+function getImageUrl(url) {
+  if (!url) return ''
+  return url.startsWith('http') ? url : imageBaseUrl + url
+}
+
 async function onChangeOrderStatus(order, nextStatus) {
   try {
     const { data } = await updateOrderStatus(order.id, { status: nextStatus })
@@ -235,6 +332,11 @@ async function logout(showTip = true) {
 
 <template>
   <div class="admin-page">
+    <Transition name="toast">
+      <div v-if="newOrderToast" class="new-order-toast">
+        🔔 您有新的订单，请及时处理！
+      </div>
+    </Transition>
     <section class="panel admin-toolbar">
       <div>
         <strong>当前管理员：</strong>{{ adminName || '-' }}
@@ -294,7 +396,21 @@ async function logout(showTip = true) {
         </select>
         <input v-model="menuForm.name" placeholder="菜品名称" />
         <input v-model="menuForm.price" type="number" step="0.01" placeholder="价格" />
-        <input v-model="menuForm.imageUrl" placeholder="图片链接（可选）" />
+        <div class="image-upload-cell">
+          <div v-if="menuForm.imageUrl" class="form-img-preview">
+            <img :src="getImageUrl(menuForm.imageUrl)" alt="预览" />
+          </div>
+          <div class="image-upload-inputs">
+            <input
+              type="file"
+              accept="image/*"
+              :disabled="imageUploading"
+              @change="onImageSelect"
+            />
+            <input v-model="menuForm.imageUrl" placeholder="或粘贴图片链接" />
+            <span v-if="imageUploading">上传中...</span>
+          </div>
+        </div>
         <input v-model="menuForm.description" placeholder="描述（可选）" />
         <label class="switch">
           <input v-model="menuForm.available" type="checkbox" />
@@ -310,6 +426,7 @@ async function logout(showTip = true) {
         <thead>
           <tr>
             <th>ID</th>
+            <th>图片</th>
             <th>分类</th>
             <th>名称</th>
             <th>价格</th>
@@ -320,6 +437,10 @@ async function logout(showTip = true) {
         <tbody>
           <tr v-for="item in menuItems" :key="item.id">
             <td>{{ item.id }}</td>
+            <td class="img-cell">
+              <img v-if="item.imageUrl" :src="getImageUrl(item.imageUrl)" class="menu-thumb" :alt="item.name" />
+              <span v-else class="no-img">暂无</span>
+            </td>
             <td>{{ item.categoryName }}</td>
             <td>{{ item.name }}</td>
             <td>￥{{ formatMoney(item.price) }}</td>
@@ -403,6 +524,63 @@ async function logout(showTip = true) {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+.image-upload-cell {
+  grid-column: span 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.image-upload-cell input[type='file'] {
+  flex: 0 0 auto;
+}
+
+.image-upload-cell input[type='text'] {
+  flex: 1;
+  min-width: 120px;
+}
+
+.img-cell {
+  padding: 6px;
+}
+
+.img-cell .no-img {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.menu-thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+
+.form-img-preview {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f3f4f6;
+  flex-shrink: 0;
+}
+
+.form-img-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-upload-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  flex: 1;
+}
+
 .form-grid input,
 .form-grid select {
   border: 1px solid #d1d5db;
@@ -476,6 +654,31 @@ td {
 
 .order-total {
   font-weight: 700;
+}
+
+.new-order-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #059669;
+  color: #fff;
+  padding: 16px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-20px);
 }
 
 @media (max-width: 1000px) {

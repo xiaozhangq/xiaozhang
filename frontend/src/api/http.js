@@ -1,8 +1,9 @@
 import axios from 'axios'
 import { clearAdminToken, getAdminToken } from '../utils/auth'
 
+// 未配置时用空字符串（同源），开发时配合 vite proxy；部署到服务器与后端同域时无需配置
 const http = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? '',
   timeout: 10000,
 })
 
