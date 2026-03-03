@@ -1,6 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import CustomerView from '../views/CustomerView.vue'
-import AdminView from '../views/AdminView.vue'
+import CustomerLoginView from '../views/CustomerLoginView.vue'
+import AdminLayout from '../views/admin/AdminLayout.vue'
+import AdminCategoriesView from '../views/admin/AdminCategoriesView.vue'
+import AdminOrdersView from '../views/admin/AdminOrdersView.vue'
+import AdminMenuView from '../views/admin/AdminMenuView.vue'
+import AdminCustomersView from '../views/admin/AdminCustomersView.vue'
 import AdminLoginView from '../views/AdminLoginView.vue'
 import { hasAdminToken } from '../utils/auth'
 
@@ -11,10 +16,21 @@ const routes = [
     component: CustomerView,
   },
   {
+    path: '/login',
+    name: 'customer-login',
+    component: CustomerLoginView,
+  },
+  {
     path: '/admin',
-    name: 'admin',
-    component: AdminView,
+    component: AdminLayout,
     meta: { requiresAdminAuth: true },
+    children: [
+      { path: '', redirect: { name: 'admin-orders' } },
+      { path: 'categories', name: 'admin-categories', component: AdminCategoriesView },
+      { path: 'orders', name: 'admin-orders', component: AdminOrdersView },
+      { path: 'menu', name: 'admin-menu', component: AdminMenuView },
+      { path: 'customers', name: 'admin-customers', component: AdminCustomersView },
+    ],
   },
   {
     path: '/admin/login',
@@ -37,7 +53,7 @@ router.beforeEach((to) => {
     }
   }
   if (to.name === 'admin-login' && loggedIn) {
-    return { name: 'admin' }
+    return { name: 'admin-orders' }
   }
   return true
 })

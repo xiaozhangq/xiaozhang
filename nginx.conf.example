@@ -1,21 +1,37 @@
-# Nginx 配置示例：点餐系统 + 图片上传
-# 将 /data/ordering/uploads 替换为你的实际上传目录
+# Nginx 配置示例：点餐系统（前端 html/dist + API 反代 + 上传目录）
+# 按实际路径修改 root、alias、proxy_pass 端口
 
 server {
-    listen 80;
-    server_name your-domain.com;
+    listen       80;
+    server_name  localhost;
 
-    # 图片静态文件：由 Nginx 直接提供，不经过后端
-    location /uploads/ {
-        alias /data/ordering/uploads/;
+    # 允许上传大文件（与后端 max-file-size 一致或更大，否则大文件会 413）
+    client_max_body_size 20M;
+
+    # 前端静态资源（Vue 打包后的 dist 内容放到 html/dist 下）
+    location / {
+        root   html/dist;
+        index  index.html index.htm;
+        # SPA：非文件请求都回退到 index.html，否则 /admin、/login 等会 404
+        try_files $uri $uri/ /index.html;
     }
 
-    # API 和前端页面
-    location / {
-        proxy_pass http://127.0.0.1:8079;
+    # 上传文件目录（与后端上传路径一致；alias 末尾建议加 /）
+    location /upload/ {
+        alias  /app/upload/;
+    }
+
+    # API 转发到后端（location 与 proxy_pass 都带 /api/，避免出现 /api//xxx 双斜杠 400）
+    location /api/ {
+        proxy_pass   http://127.0.0.1:8079/api/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   html;
     }
 }
