@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import com.example.backend.dto.OrderDto;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -11,12 +12,18 @@ public class OrderNotifyService {
 
     private final SimpMessagingTemplate messagingTemplate;
 
+    @Autowired(required = false)
+    private WeChatNotifyService weChatNotifyService;
+
     public OrderNotifyService(SimpMessagingTemplate messagingTemplate) {
         this.messagingTemplate = messagingTemplate;
     }
 
     public void notifyNewOrder(OrderDto order) {
         messagingTemplate.convertAndSend(TOPIC_ORDERS, new OrderMessage("NEW", order));
+        if (weChatNotifyService != null) {
+            weChatNotifyService.sendOrderNotify(order);
+        }
     }
 
     public void notifyStatusChanged(OrderDto order) {

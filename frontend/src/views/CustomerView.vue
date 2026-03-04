@@ -265,7 +265,7 @@ function getImageUrl(url) {
 }
 
 onMounted(async () => {
-  document.title = '点餐 - 前台'
+  document.title = '今天吃什么'
   await loadCategories()
   await loadMenuItems(activeCategoryId.value)
   await loadCustomerProfile()
@@ -1504,6 +1504,7 @@ async function submitOrder() {
     font-size: 18px;
   }
 
+  /* 主内容区铺满左右：抵消 body 水平 padding，分类贴左、菜单填满右侧 */
   .meituan-main {
     flex: 1;
     display: flex;
@@ -1511,14 +1512,17 @@ async function submitOrder() {
     flex-wrap: wrap;
     min-height: 0;
     max-width: 100%;
+    margin-left: calc(-1 * env(safe-area-inset-left, 0));
+    margin-right: calc(-1 * env(safe-area-inset-right, 0));
+    width: calc(100% + env(safe-area-inset-left, 0) + env(safe-area-inset-right, 0));
   }
 
-  /* 左侧分类：贴左、减少两侧空白（微信等内嵌浏览器） */
+  /* 左侧分类：放大，参考美团，贴最左 */
   .category-sidebar {
-    width: 64px;
+    width: 72px;
     flex-shrink: 0;
     display: block;
-    padding: 4px 0;
+    padding: 6px 0 6px env(safe-area-inset-left, 0);
     background: #fff;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -1527,14 +1531,16 @@ async function submitOrder() {
 
   .category-item {
     display: block;
-    padding: 10px 2px 10px 0;
+    padding: 14px 4px 14px 0;
     text-align: center;
-    font-size: 13px;
+    font-size: 15px;
+    font-weight: 500;
     color: #333;
     background: transparent;
-    border-left: 3px solid transparent;
+    border-left: 4px solid transparent;
     border-bottom: none;
     box-sizing: border-box;
+    line-height: 1.3;
   }
 
   .category-item.active {
@@ -1544,42 +1550,57 @@ async function submitOrder() {
     border-left-color: #ffc107;
   }
 
-  /* 右侧菜单：占满剩余宽度 */
+  /* 右侧菜单：大卡片，一屏约 4 个，参考美团 */
   .menu-section {
     flex: 1;
     min-width: 0;
-    padding: 8px 10px;
+    padding: 10px 8px;
+    padding-right: calc(8px + env(safe-area-inset-right, 0));
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 
+  .menu-list {
+    gap: 14px;
+  }
+
   .menu-item {
-    padding: 10px;
-    gap: 10px;
+    padding: 14px 10px 14px 12px;
+    gap: 14px;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   }
 
   .menu-item-img {
-    width: 72px;
-    height: 72px;
+    width: 100px;
+    height: 100px;
     flex-shrink: 0;
+    border-radius: 8px;
   }
 
   .menu-item-info h3 {
-    font-size: 14px;
+    font-size: 16px;
+    font-weight: 600;
   }
 
   .menu-desc {
-    font-size: 12px;
+    font-size: 13px;
+    color: #666;
+    line-height: 1.4;
   }
 
   .menu-price {
-    font-size: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ff6b35;
   }
 
   .add-btn {
-    min-height: 32px;
-    padding: 6px 12px;
-    font-size: 12px;
+    min-height: 38px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 20px;
   }
 
 }
@@ -1785,20 +1806,25 @@ async function submitOrder() {
   transform: translateY(100%);
 }
 
-/* 超窄屏（小屏安卓 360px 等） */
+/* 超窄屏（小屏安卓 360px 等）仍保持大卡片风格 */
 @media (max-width: 360px) {
   .category-sidebar {
-    width: 56px;
-  }
-
-  .menu-item-img {
     width: 64px;
-    height: 64px;
   }
 
   .category-item {
-    padding: 8px 2px 8px 0;
-    font-size: 12px;
+    padding: 12px 4px 12px 0;
+    font-size: 14px;
+  }
+
+  .menu-item-img {
+    width: 88px;
+    height: 88px;
+  }
+
+  .menu-item {
+    padding: 12px 8px;
+    gap: 12px;
   }
 }
 </style>
